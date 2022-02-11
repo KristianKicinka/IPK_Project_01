@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -std=c11 -pedantic -lm  -ggdb3 -g
+CFLAGS=-Wall -std=c11 -pedantic -lm -ggdb3 -g
 FILES= server.c
 
 .PHONY: hinfosvc clean
