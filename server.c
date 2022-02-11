@@ -10,25 +10,55 @@
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
+#include <stdbool.h>
 
 #define PORT 8080
 #define HOSTNAME_MAX_LEN 1024
-#define PATH_MAX 256 
+#define PATH_MAX 256
+#define CK_TIME 1  
+
+typedef struct cpu_usage_t{
+    long int user;
+    long int nice;
+    long int sys;
+    long int idle;
+    long int iowait;
+    long int irq;
+    long int softirq;
+    long int sum_usage;
+    char cpu_buffer[PATH_MAX];
+    char cpu_tag[PATH_MAX];
+}CpuUsage;
 
 
-void get_processor_name();
-double get_cpu_wall_time();
+void initialize_CpuUsage(CpuUsage *cpu_usg);
+void load_data(CpuUsage *cpu_usg, FILE *cp_file);
+void get_port_number(char *string, int argc, char const *argv[]);
 void get_cpu_usage();
+void get_processor_name();
 void get_hostname();
 void get_processor_name();
 
+void get_port_number(char *string, int argc, char const *argv[]){
 
+    if (argc>1){
+        strcpy(string,argv[1]);
+    }else{
+        fprintf(stderr,"No port selected!\n");
+        exit(1);
+    }
+}
 
 int main(int argc, char const *argv[]){
 
-    get_cpu_usage();
-    get_hostname();
+    char port_number[PATH_MAX];
+    get_port_number(port_number,argc,argv);
+    printf("Port : %s\n",port_number);
+
     get_processor_name();
+    get_hostname();
+    get_cpu_usage();
+
 
     /*char *welcome_message = "Welcome, from server";
 
@@ -60,28 +90,54 @@ int main(int argc, char const *argv[]){
 }
 
 
-double get_cpu_wall_time(){
 
-    struct timeval time;
-    if (gettimeofday(&time,NULL)){
-        fprintf(stderr,"Get cpu walltime error!\n");
-        return 0;
-    }
 
-    return (double) time.tv_sec + (double) time.tv_usec * 0.000001;
+void initialize_CpuUsage(CpuUsage *cpu_usg){
+    cpu_usg->user = cpu_usg->nice = cpu_usg->sys = cpu_usg->idle = cpu_usg->iowait = cpu_usg->irq = 0;
+    cpu_usg->softirq = cpu_usg->sum_usage = 0;
+    memset(cpu_usg->cpu_buffer,0,sizeof(cpu_usg->cpu_buffer));
+    cpu_usg->cpu_tag[0] = '\0'; 
+}
+
+void load_data(CpuUsage *cpu_usg, FILE *cp_file){
+    fgets(cpu_usg->cpu_buffer,sizeof(cpu_usg->cpu_buffer),cp_file);
+    sscanf(cpu_usg->cpu_buffer,"%s%ld%ld%ld%ld%ld%ld%ld",cpu_usg->cpu_tag,&cpu_usg->user,&cpu_usg->nice,&cpu_usg->sys,&cpu_usg->idle,&cpu_usg->iowait,&cpu_usg->irq,&cpu_usg->softirq);
+    cpu_usg->sum_usage = cpu_usg->user+cpu_usg->nice+cpu_usg->sys+cpu_usg->idle+cpu_usg->iowait+cpu_usg->irq+cpu_usg->softirq;
 }
 
 void get_cpu_usage(){
 
-    double CPU_time = (double) clock() / CLOCKS_PER_SEC;
-    double count_of_cores = sysconf(_SC_NPROCESSORS_ONLN);
-    double wall_time = get_cpu_wall_time();
+    CpuUsage cpu_prev;
+    CpuUsage cpu_next;
+    double cpu_usage;
 
-    printf("CPU TIME : %f \n",CPU_time);
-    printf("Cores : %f \n",count_of_cores);
-    printf("Wall time : %f \n",wall_time);
-    double cpu_usage = CPU_time / count_of_cores / wall_time;
-    printf("CPU USAGE : %f \n",cpu_usage);
+    initialize_CpuUsage(&cpu_prev);
+    initialize_CpuUsage(&cpu_next);
+
+    FILE *cpu_file;
+
+    while(true){
+
+        cpu_file = fopen("/proc/stat", "r");
+        if(cpu_file == NULL){
+            fprintf(stderr,"CPU file not found!\n");
+            return;
+        }
+
+        load_data(&cpu_prev,cpu_file);
+
+        rewind(cpu_file);
+        sleep(CK_TIME);
+
+        load_data(&cpu_next,cpu_file);
+
+        cpu_usage = (double)(cpu_next.sum_usage-cpu_prev.sum_usage - (cpu_next.idle-cpu_prev.idle)) / (cpu_next.sum_usage-cpu_prev.sum_usage) * 100;
+
+        fclose(cpu_file);  
+        printf("\rCPU usage is : %.2f%c",cpu_usage,'%');
+        fflush(stdout);
+    }
+
 }
 
 void get_hostname(){
