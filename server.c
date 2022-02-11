@@ -64,7 +64,7 @@ double get_cpu_wall_time(){
 
     struct timeval time;
     if (gettimeofday(&time,NULL)){
-        //  Handle error
+        fprintf(stderr,"Get cpu walltime error!\n");
         return 0;
     }
 
@@ -101,6 +101,7 @@ void get_processor_name(){
 
     if (cpu_name_fp == NULL){
         fprintf(stderr,"CPU file not found!\n");
+        return;
     }
 
     fgets(cpu_name, PATH_MAX, cpu_name_fp);
