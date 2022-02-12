@@ -15,7 +15,13 @@
 #define PORT 8080
 #define HOSTNAME_MAX_LEN 1024
 #define PATH_MAX 256
-#define CK_TIME 1  
+#define CK_TIME 1
+#define EXIT_CODE 1
+#define SOCKET_BUFFER_SIZE 1024
+#define GET_DOMAIN_NAME "GET /hostname"
+#define GET_CPU_LOAD "GET /load"
+#define GET_CPU_NAME "GET /cpu-name"
+#define ERR_400 "400 Bad Request"      
 
 typedef struct cpu_usage_t{
     long int user;
@@ -36,7 +42,7 @@ void load_data(CpuUsage *cpu_usg, FILE *cp_file);
 void get_port_number(char *string, int argc, char const *argv[]);
 void get_cpu_usage();
 void get_processor_name();
-void get_hostname();
+void get_hostname(char* http_head, int new_socket);
 void get_processor_name();
 
 void get_port_number(char *string, int argc, char const *argv[]){
@@ -55,41 +61,77 @@ int main(int argc, char const *argv[]){
     get_port_number(port_number,argc,argv);
     printf("Port : %s\n",port_number);
 
-    get_processor_name();
-    get_hostname();
-    get_cpu_usage();
+    //get_processor_name();
+    //get_hostname();
+    //get_cpu_usage();
 
 
-    /*char *welcome_message = "Welcome, from server";
+    //char *welcome_message = "Welcome, from server";
 
     int socket_desc, new_socket;
     struct sockaddr_in socket_address_in;
     int option_val = 1;
+    int socket_addrlen = sizeof(socket_address_in);
+    char socket_buffer[SOCKET_BUFFER_SIZE];
 
-    socket_desc = socket(AF_LOCAL,SOCK_STREAM,0);
+    socket_desc = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
     if(socket_desc == 0){
         fprintf(stderr,"Internal failature");
-        exit(1);
+        exit(EXIT_CODE);
     }
 
-    if (setsocketopt(socket_desc,SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &option_val, sizeof(option_val))){
+    if (setsockopt(socket_desc,SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &option_val, sizeof(option_val))){
         fprintf(stderr,"Internal failature");
-        exit(1);
+        exit(EXIT_CODE);
     }
 
     socket_address_in.sin_family = AF_INET;
-    socket_address_in.sin_addr.s_addr = INADDR_ANY;
+    socket_address_in.sin_addr.s_addr =  htonl(INADDR_ANY);
     socket_address_in.sin_port = htons( PORT );
 
-    if(bind(socket_desc,))
+    if (bind(socket_desc, (struct sockaddr *)&socket_address_in, sizeof(socket_address_in))<0){
+        fprintf(stderr,"Bind failed!\n");
+        exit(EXIT_CODE);
+    }
 
-    */
+    if (listen(socket_desc, 3) < 0){
+        fprintf(stderr,"Listening failed!\n");
+        exit(EXIT_CODE);
+    }
+
+    while(true){
+        if ((new_socket = accept(socket_desc, (struct sockaddr *)&socket_address_in, (socklen_t*)&socket_addrlen))<0){
+        fprintf(stderr,"Accept failed!\n");
+        exit(EXIT_CODE);
+        }
+
+        read( new_socket , socket_buffer, SOCKET_BUFFER_SIZE);
+        char *parsed_buffer = strtok(socket_buffer,"\n");
+        // Parsed first row
+        //char *http_head = "HTTP/1.1 200 OK\r\nContent-Type:text/plain;\r\n\r\n";
+        char *http_head = malloc(HOSTNAME_MAX_LEN +256);
+
+        strcpy(http_head,"HTTP/1.1 200 OK\r\nContent-Type:text/plain;\r\n\r\n");
+
+        if(strstr(parsed_buffer,GET_DOMAIN_NAME)){
+            get_hostname(http_head,new_socket);
+        }else if(strstr(parsed_buffer,GET_CPU_NAME)){
+            send(new_socket , ERR_400 , strlen(ERR_400) , 0 );
+        }else if(strstr(parsed_buffer,GET_CPU_NAME)){
+            send(new_socket , ERR_400 , strlen(ERR_400) , 0 );
+        }else{
+            send(new_socket , ERR_400 , strlen(ERR_400) , 0 );
+        }
+
+        close(new_socket);
+        printf("%s\n",parsed_buffer);
+        fflush(stdout);
+    }
+
     
 
     return 0;
 }
-
-
 
 
 void initialize_CpuUsage(CpuUsage *cpu_usg){
@@ -140,12 +182,14 @@ void get_cpu_usage(){
 
 }
 
-void get_hostname(){
-
+void get_hostname(char* http_head, int new_socket){
     char hostname[HOSTNAME_MAX_LEN];
-    gethostname(hostname,HOSTNAME_MAX_LEN);
-    printf("Hostname is : %s \n",hostname);
 
+    gethostname(hostname,HOSTNAME_MAX_LEN);
+    strncat(http_head,hostname,strlen(hostname));
+    printf("Hostname is : %s \n",hostname);
+    printf("%s\n",http_head);
+    send(new_socket , http_head , strlen(http_head) , 0 );
 }
 
 void get_processor_name(){
