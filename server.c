@@ -40,17 +40,23 @@ typedef struct cpu_usage_t{
 
 void initialize_CpuUsage(CpuUsage *cpu_usg);
 void load_data(CpuUsage *cpu_usg, FILE *cp_file);
-void get_port_number(char *string, int argc, char const *argv[]);
+int get_port_number(int argc, char const *argv[]);
 void send_bad_request(char* http_head, int new_socket);
-void get_cpu_usage();
+void get_cpu_usage(char* http_head, int new_socket);
 void get_processor_name(char* http_head, int new_socket);
 void get_hostname(char* http_head, int new_socket);
-void get_processor_name();
 
-void get_port_number(char *string, int argc, char const *argv[]){
+int get_port_number(int argc, char const *argv[]){
+    int port_number;
 
     if (argc>1){
-        strcpy(string,argv[1]);
+        char *ptr;
+        port_number = strtol(argv[1], &ptr, 10);
+        if(*ptr != '\0'){
+            fprintf(stderr,"Corrupted port number!\n");
+            exit(1);
+        }
+        return port_number;
     }else{
         fprintf(stderr,"No port selected!\n");
         exit(1);
@@ -59,9 +65,8 @@ void get_port_number(char *string, int argc, char const *argv[]){
 
 int main(int argc, char const *argv[]){
 
-    char port_number[PATH_MAX];
-    get_port_number(port_number,argc,argv);
-    printf("Port : %s\n",port_number);
+    int port_number = get_port_number(argc,argv);
+    printf("Server is running on http://127.0.0.1:%d/\n",port_number);
 
     int socket_desc, new_socket;
     struct sockaddr_in socket_address_in;
@@ -110,8 +115,8 @@ int main(int argc, char const *argv[]){
             get_hostname(http_head,new_socket);
         }else if(strstr(parsed_buffer,GET_CPU_NAME)){
             get_processor_name(http_head,new_socket);
-        }else if(strstr(parsed_buffer,GET_CPU_NAME)){
-            send(new_socket , ERR_400 , strlen(ERR_400) , 0 );
+        }else if(strstr(parsed_buffer,GET_CPU_LOAD)){
+            get_cpu_usage(http_head,new_socket);
         }else{
             send_bad_request(http_head,new_socket);
         }
@@ -124,7 +129,7 @@ int main(int argc, char const *argv[]){
 }
 
 void send_bad_request(char* http_head, int new_socket){
-    strncat(http_head,ERR_400,strlen(ERR_400));
+    strcat(http_head,ERR_400);
     send(new_socket , http_head , strlen(http_head) , 0 );
 }
 
@@ -141,7 +146,7 @@ void load_data(CpuUsage *cpu_usg, FILE *cp_file){
     cpu_usg->sum_usage = cpu_usg->user+cpu_usg->nice+cpu_usg->sys+cpu_usg->idle+cpu_usg->iowait+cpu_usg->irq+cpu_usg->softirq;
 }
 
-void get_cpu_usage(){
+void get_cpu_usage(char* http_head, int new_socket){
 
     CpuUsage cpu_prev;
     CpuUsage cpu_next;
@@ -172,6 +177,13 @@ void get_cpu_usage(){
         fclose(cpu_file);  
         printf("\rCPU usage is : %.2f%c",cpu_usage,'%');
         fflush(stdout);
+        char percentage_tag = '%';
+        char usage_str[HOSTNAME_MAX_LEN];
+        snprintf(usage_str,HOSTNAME_MAX_LEN,"%.2f",cpu_usage);
+        strncat(http_head,usage_str,strlen(usage_str));
+        strncat(http_head,&percentage_tag,sizeof(char));
+        send(new_socket , http_head , strlen(http_head) , 0 );
+        break;
     }
 
 }
@@ -199,7 +211,9 @@ void get_processor_name(char* http_head, int new_socket){
     }
 
     fgets(cpu_name, PATH_MAX, cpu_name_fp);
+
     strncat(http_head,cpu_name,strlen(cpu_name));
     send(new_socket , http_head , strlen(http_head) , 0 );
+
     pclose(cpu_name_fp);
 }
