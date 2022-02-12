@@ -21,7 +21,8 @@
 #define GET_DOMAIN_NAME "GET /hostname"
 #define GET_CPU_LOAD "GET /load"
 #define GET_CPU_NAME "GET /cpu-name"
-#define ERR_400 "400 Bad Request"      
+#define ERR_400 "400 Bad Request"
+#define HTTP_HEAD "HTTP/1.1 200 OK\r\nContent-Type:text/plain;\r\n\r\n"      
 
 typedef struct cpu_usage_t{
     long int user;
@@ -40,8 +41,9 @@ typedef struct cpu_usage_t{
 void initialize_CpuUsage(CpuUsage *cpu_usg);
 void load_data(CpuUsage *cpu_usg, FILE *cp_file);
 void get_port_number(char *string, int argc, char const *argv[]);
+void send_bad_request(char* http_head, int new_socket);
 void get_cpu_usage();
-void get_processor_name();
+void get_processor_name(char* http_head, int new_socket);
 void get_hostname(char* http_head, int new_socket);
 void get_processor_name();
 
@@ -60,13 +62,6 @@ int main(int argc, char const *argv[]){
     char port_number[PATH_MAX];
     get_port_number(port_number,argc,argv);
     printf("Port : %s\n",port_number);
-
-    //get_processor_name();
-    //get_hostname();
-    //get_cpu_usage();
-
-
-    //char *welcome_message = "Welcome, from server";
 
     int socket_desc, new_socket;
     struct sockaddr_in socket_address_in;
@@ -107,32 +102,31 @@ int main(int argc, char const *argv[]){
 
         read( new_socket , socket_buffer, SOCKET_BUFFER_SIZE);
         char *parsed_buffer = strtok(socket_buffer,"\n");
-        // Parsed first row
-        //char *http_head = "HTTP/1.1 200 OK\r\nContent-Type:text/plain;\r\n\r\n";
-        char *http_head = malloc(HOSTNAME_MAX_LEN +256);
+        char *http_head = malloc(strlen(HTTP_HEAD)+ HOSTNAME_MAX_LEN);
 
-        strcpy(http_head,"HTTP/1.1 200 OK\r\nContent-Type:text/plain;\r\n\r\n");
+        strcpy(http_head,HTTP_HEAD);
 
         if(strstr(parsed_buffer,GET_DOMAIN_NAME)){
             get_hostname(http_head,new_socket);
         }else if(strstr(parsed_buffer,GET_CPU_NAME)){
-            send(new_socket , ERR_400 , strlen(ERR_400) , 0 );
+            get_processor_name(http_head,new_socket);
         }else if(strstr(parsed_buffer,GET_CPU_NAME)){
             send(new_socket , ERR_400 , strlen(ERR_400) , 0 );
         }else{
-            send(new_socket , ERR_400 , strlen(ERR_400) , 0 );
+            send_bad_request(http_head,new_socket);
         }
 
         close(new_socket);
         printf("%s\n",parsed_buffer);
         fflush(stdout);
     }
-
-    
-
     return 0;
 }
 
+void send_bad_request(char* http_head, int new_socket){
+    strncat(http_head,ERR_400,strlen(ERR_400));
+    send(new_socket , http_head , strlen(http_head) , 0 );
+}
 
 void initialize_CpuUsage(CpuUsage *cpu_usg){
     cpu_usg->user = cpu_usg->nice = cpu_usg->sys = cpu_usg->idle = cpu_usg->iowait = cpu_usg->irq = 0;
@@ -192,7 +186,7 @@ void get_hostname(char* http_head, int new_socket){
     send(new_socket , http_head , strlen(http_head) , 0 );
 }
 
-void get_processor_name(){
+void get_processor_name(char* http_head, int new_socket){
 
     FILE *cpu_name_fp;
     char cpu_name[PATH_MAX];
@@ -205,7 +199,7 @@ void get_processor_name(){
     }
 
     fgets(cpu_name, PATH_MAX, cpu_name_fp);
-    printf("%s", cpu_name);
-
+    strncat(http_head,cpu_name,strlen(cpu_name));
+    send(new_socket , http_head , strlen(http_head) , 0 );
     pclose(cpu_name_fp);
 }
