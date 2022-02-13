@@ -17,7 +17,7 @@ int main(int argc, char const *argv[]){
 
     int port_number = get_port_number(argc,argv);
 
-    printf("Server is running on address http://localhost:%d/\n", port_number);
+    printf("Server is running on address : http://localhost:%d/\n", port_number);
 
     create_server_socket(&sv_params);
     set_server_socket(&sv_params);
