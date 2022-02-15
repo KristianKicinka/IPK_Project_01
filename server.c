@@ -20,7 +20,7 @@ int main(int argc, char const *argv[]){
     printf("Server is running on address : http://localhost:%d/\n", port_number);
 
     create_server_socket(&sv_params);
-    set_server_socket(&sv_params);
+    set_server_socket(&sv_params,port_number);
     bind_server_ports(&sv_params);
     set_passive_mode(&sv_params);
 
