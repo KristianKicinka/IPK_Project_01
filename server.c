@@ -130,6 +130,7 @@ void get_cpu_usage(char* http_head, int new_socket){
     CpuUsage cpu_next;
     double cpu_usage;
     char percentage_tag = '%';
+    char new_line_tag = '\n';
     char usage_str[HOSTNAME_MAX_LEN];
 
     initialize_CpuUsage(&cpu_prev);
@@ -159,7 +160,7 @@ void get_cpu_usage(char* http_head, int new_socket){
         snprintf(usage_str, HOSTNAME_MAX_LEN, "%g", cpu_usage);
         strncat(http_head, usage_str, strlen(usage_str));
         strncat(http_head, &percentage_tag, sizeof(char));
-        strncat(http_head,"\n",sizeof(char));
+        strncat(http_head,&new_line_tag,sizeof(char));
         send(new_socket, http_head, strlen(http_head), 0);
 
         break;
@@ -168,9 +169,18 @@ void get_cpu_usage(char* http_head, int new_socket){
 }
 
 void get_hostname(char* http_head, int new_socket){
+    FILE *host_name_fp;
     char hostname[HOSTNAME_MAX_LEN];
 
-    gethostname(hostname, HOSTNAME_MAX_LEN);
+    host_name_fp = popen("hostname", "r");
+
+    if (host_name_fp == NULL){
+        fprintf(stderr, "Hostname command error!\n");
+        return;
+    }
+
+    fgets(hostname, PATH_MAX, host_name_fp);
+
     strncat(http_head, hostname, strlen(hostname));
     send(new_socket, http_head, strlen(http_head), 0);
 }
