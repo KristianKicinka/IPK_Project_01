@@ -25,7 +25,6 @@
 #include <sys/time.h>
 #include <stdbool.h>
 
-#define PORT 8080
 #define HOSTNAME_MAX_LEN 1024
 #define PATH_MAX 256
 #define CK_TIME 1
@@ -91,8 +90,9 @@ void bind_server_ports(ServerParams *params);
  * @brief Funkcia slúži na priradenie potrebných parametrov soketu.
  * 
  * @param params Ukazateľ na štruktúru parametrov.
+ * @param port_number Číslo portu.
  */
-void set_server_socket(ServerParams *params);
+void set_server_socket(ServerParams *params, int port_number);
 
 /**
  * @brief Funkcia nastaví server do pasivného módu kde vyčkáva na response.

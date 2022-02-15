@@ -89,7 +89,7 @@ void bind_server_ports(ServerParams *params){
     }
 }
 
-void set_server_socket(ServerParams *params){
+void set_server_socket(ServerParams *params, int port_number){
     if (setsockopt(params->socket_desc,SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &params->option_val, sizeof(params->option_val))){
         fprintf(stderr,"Internal failure!\n");
         exit(EXIT_CODE);
@@ -97,7 +97,7 @@ void set_server_socket(ServerParams *params){
 
     params->socket_address_in.sin_family = AF_INET;
     params->socket_address_in.sin_addr.s_addr =  htonl(INADDR_ANY);
-    params->socket_address_in.sin_port = htons( PORT );
+    params->socket_address_in.sin_port = htons( port_number );
 }
 
 void set_passive_mode(ServerParams *params){

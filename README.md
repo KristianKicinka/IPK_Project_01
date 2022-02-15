@@ -1,7 +1,7 @@
 # IPK Projekt 1
 ## vytvorenie servera v jazyku C/C++
 
-## Inštalácia
+## Build
 Pred prvým spustením programu je nutné prejsť do adresára, kde sú cieľové skripty uložené a 
 za pomoci príkazu make preložiť skripty.
 
