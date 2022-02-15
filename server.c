@@ -159,6 +159,7 @@ void get_cpu_usage(char* http_head, int new_socket){
         snprintf(usage_str, HOSTNAME_MAX_LEN, "%g", cpu_usage);
         strncat(http_head, usage_str, strlen(usage_str));
         strncat(http_head, &percentage_tag, sizeof(char));
+        strncat(http_head,"\n",sizeof(char));
         send(new_socket, http_head, strlen(http_head), 0);
 
         break;
