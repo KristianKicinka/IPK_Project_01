@@ -33,7 +33,7 @@
 #define GET_DOMAIN_NAME "GET /hostname"
 #define GET_CPU_LOAD "GET /load"
 #define GET_CPU_NAME "GET /cpu-name"
-#define ERR_400 "400 Bad Request"
+#define ERR_400 "400 Bad Request\n"
 #define HTTP_HEAD "HTTP/1.1 200 OK\r\nContent-Type:text/plain;\r\n\r\n"      
 
 typedef struct cpu_usage_t{

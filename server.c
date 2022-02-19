@@ -189,7 +189,7 @@ void get_processor_name(char* http_head, int new_socket){
     FILE *cpu_name_fp;
     char cpu_name[PATH_MAX];
 
-    cpu_name_fp = popen("lscpu | grep 'Model name:' | sed -r 's/Model name:\\s{1,}//g'", "r");
+    cpu_name_fp = popen("cat /proc/cpuinfo | grep -m1 'model name' | sed -e 's/model name.*: //'", "r");
 
     if (cpu_name_fp == NULL){
         fprintf(stderr, "CPU file not found!\n");
