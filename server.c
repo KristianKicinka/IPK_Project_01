@@ -20,18 +20,19 @@ int main(int argc, char const *argv[]){
     printf("Server is running on address : http://localhost:%d/\n", port_number);
 
     create_server_socket(&sv_params);
-    set_server_socket(&sv_params,port_number);
+    set_server_socket(&sv_params, port_number);
     bind_server_ports(&sv_params);
     set_passive_mode(&sv_params);
 
     while(true){
 
-        if ((sv_params.new_socket = accept(sv_params.socket_desc, (struct sockaddr *)&sv_params.socket_address_in, (socklen_t*)&sv_params.socket_addrlen)) < 0){
+        if ((sv_params.new_socket = accept(sv_params.socket_desc, (struct sockaddr *)&(sv_params.socket_address_in), (socklen_t*)&(sv_params.socket_addrlen))) < 0){
             fprintf(stderr, "Accept failed!\n");
             exit(EXIT_CODE);
         }
 
         read( sv_params.new_socket , sv_params.socket_buffer, SOCKET_BUFFER_SIZE);
+        printf("%s \n",sv_params.socket_buffer);
         char *parsed_buffer = strtok(sv_params.socket_buffer, "\n");
         char *http_head = malloc(strlen(HTTP_HEAD) + HOSTNAME_MAX_LEN);
         strcpy(http_head, HTTP_HEAD);
@@ -42,8 +43,10 @@ int main(int argc, char const *argv[]){
             get_processor_name(http_head, sv_params.new_socket);
         }else if(strstr(parsed_buffer, GET_CPU_LOAD)){
             get_cpu_usage(http_head, sv_params.new_socket);
+        }else if(strstr(parsed_buffer, FAVICON)){
+            send_not_found(sv_params.new_socket);
         }else{
-            send_bad_request(http_head, sv_params.new_socket);
+            send_bad_request(sv_params.new_socket);
         }
         close(sv_params.new_socket);
     }
@@ -83,14 +86,14 @@ void create_server_socket(ServerParams *params){
 }
 
 void bind_server_ports(ServerParams *params){
-    if (bind(params->socket_desc, (struct sockaddr *)&params->socket_address_in, sizeof(params->socket_address_in)) < 0){
+    if (bind(params->socket_desc, (struct sockaddr *)&(params->socket_address_in), sizeof(params->socket_address_in)) < 0){
         fprintf(stderr,"Bind failed!\n");
         exit(EXIT_CODE);
     }
 }
 
 void set_server_socket(ServerParams *params, int port_number){
-    if (setsockopt(params->socket_desc,SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &params->option_val, sizeof(params->option_val))){
+    if (setsockopt(params->socket_desc, SOL_SOCKET, SO_REUSEADDR, &(params->option_val), sizeof(params->option_val))){
         fprintf(stderr,"Internal failure!\n");
         exit(EXIT_CODE);
     }
@@ -107,9 +110,12 @@ void set_passive_mode(ServerParams *params){
     }
 }
 
-void send_bad_request(char* http_head, int new_socket){
-    strcat(http_head, ERR_400);
-    send(new_socket , http_head , strlen(http_head) , 0 );
+void send_bad_request(int new_socket){
+    send(new_socket, ERR_400, strlen(ERR_400), 0);
+}
+
+void send_not_found(int new_socket){
+    send(new_socket, ERR_4O4, strlen(ERR_4O4), 0);
 }
 
 void initialize_CpuUsage(CpuUsage *cpu_usg){

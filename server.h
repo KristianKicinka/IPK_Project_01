@@ -33,7 +33,9 @@
 #define GET_DOMAIN_NAME "GET /hostname"
 #define GET_CPU_LOAD "GET /load"
 #define GET_CPU_NAME "GET /cpu-name"
-#define ERR_400 "400 Bad Request\n"
+#define FAVICON "GET /favicon.ico"
+#define ERR_400 "HTTP/1.1 400 Bad Request\r\n\r\n"
+#define ERR_4O4 "HTTP/1.1 404 Not Found\r\n\r\n"
 #define HTTP_HEAD "HTTP/1.1 200 OK\r\nContent-Type:text/plain;\r\n\r\n"      
 
 typedef struct cpu_usage_t{
@@ -121,10 +123,15 @@ int get_port_number(int argc, char const *argv[]);
 /**
  * @brief Funkcia pošle chybovú hlášku v prípade neplatného get requestu.
  * 
- * @param http_head Http hlavička.
  * @param new_socket Vytvorený soket určený na response.
  */
-void send_bad_request(char* http_head, int new_socket);
+void send_bad_request(int new_socket);
+/**
+ * @brief 
+ * 
+ * @param new_socket 
+ */
+void send_not_found(int new_socket);
 
 /**
  * @brief Funkcia slúži na výpočet zaťaženia procesora.
