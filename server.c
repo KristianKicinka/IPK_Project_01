@@ -32,7 +32,7 @@ int main(int argc, char const *argv[]){
         }
 
         read( sv_params.new_socket , sv_params.socket_buffer, SOCKET_BUFFER_SIZE);
-        printf("%s \n",sv_params.socket_buffer);
+        
         char *parsed_buffer = strtok(sv_params.socket_buffer, "\n");
         char *http_head = malloc(strlen(HTTP_HEAD) + HOSTNAME_MAX_LEN);
         strcpy(http_head, HTTP_HEAD);
